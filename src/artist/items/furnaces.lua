@@ -33,13 +33,14 @@ local function check_furnace(self, name)
 
   local contents = furnace.remote.list()
   if not contents then return end
+  local input, fuel, output = Null
 
   if (peripheral.getType(name) == "minecraft:furnace") then
-    local input, fuel, output = contents[1], contents[2], contents[3]
+    input, fuel, output = contents[1], contents[2], contents[3]
   elseif (peripheral.getType(name) == "techreborn:electric_furnace") then
-    local input, output = contents[1], contents[2]
+    input, output = contents[1], contents[2]
   else
-    local fuel = contents[1]
+    fuel = contents[1]
   end
 
   -- Flip between the hot and cold sets.
