@@ -34,7 +34,13 @@ local function check_furnace(self, name)
   local contents = furnace.remote.list()
   if not contents then return end
 
-  local input, fuel, output = contents[1], contents[2], contents[3]
+  if (peripheral.getType(name) == "minecraft:furnace") then
+    local input, fuel, output = contents[1], contents[2], contents[3]
+  elseif (peripheral.getType(name) == "techreborn:electric_furnace") then
+    local input, output = contents[1], contents[2]
+  else
+    local fuel = contents[1]
+  end
 
   -- Flip between the hot and cold sets.
   local new_cooking = input and (input.count > 0 or output.count > 0) or false
@@ -48,18 +54,20 @@ local function check_furnace(self, name)
     self._context.mediator:publish("furnaces.change")
   end
 
-  -- Only refuel when halfway there
-  if not fuel or fuel.count <= 32 then
-    local refuel_with
-    if fuel then
-      local hash = Items.hash_item(fuel)
-      if self._fuel_lookup[hash] then refuel_with = hash end
-    else
-      for i = 1, #self._fuels do
-        local fuel_entry = self._items:get_item(self._fuels[i])
-        if fuel_entry.count > 0 then
-          refuel_with = self._fuels[i]
-          break
+  if self._generator_types[peripheral.getType(name)] ~= nil then
+    -- Only refuel when halfway there
+    if not fuel or fuel.count <= 32 then
+      local refuel_with
+      if fuel then
+        local hash = Items.hash_item(fuel)
+        if self._fuel_lookup[hash] then refuel_with = hash end
+      else
+        for i = 1, #self._fuels do
+          local fuel_entry = self._items:get_item(self._fuels[i])
+          if fuel_entry.count > 0 then
+            refuel_with = self._fuels[i]
+            break
+          end
         end
       end
     end
@@ -68,11 +76,21 @@ local function check_furnace(self, name)
       local amount = 64
       if fuel then amount = 64 - fuel.count end
       log("Refueling furnace %s with %d x %s", name, amount, refuel_with)
-      self._items:extract(name, refuel_with, amount, 2)
+      if peripheral.getType(name) == "minecraft:furnace" then
+        self._items:extract(name, refuel_with, amount, 2)
+      else
+        self._items:extract(name, refuel_with, amount, 1)
+      end
     end
   end
 
-  if output then self._items:insert(name, 3, output) end
+  if output then 
+    if peripheral.getType(name) == "minecraft:furnace" then
+      self._items:insert(name, 3, output)
+    else
+      self._items:insert(name, 2, output)
+    end
+  end
 end
 
 function Furnaces:initialise(context)
@@ -83,7 +101,8 @@ function Furnaces:initialise(context)
     :define("cold_rescan", "The delay between rescanning cold (non-smelting) furnaces", 10, schema.positive)
     :define("hot_rescan", "The delay between rescanning hot (smelting) furnaces", 5, schema.positive)
     :define("ignored", "A list of ignored furnace peripherals", {}, schema.list(schema.peripheral), tbl.lookup)
-    :define("types", "A list of furnace types", { "minecraft:furnace" }, schema.list(schema.string), tbl.lookup)
+    :define("types", "A list of furnace types", { "minecraft:furnace", "techreborn:electric_furnace" }, schema.list(schema.string), tbl.lookup)
+    :define("gen_types", "A list of generator types", { "minecraft:furnace", "techreborn:generator" }, schema.list(schema.string), tbl.lookup)
     :define("fuels", "Possible fuel items", {
       "minecraft:charcoal",
       "minecraft:coal",
@@ -94,6 +113,7 @@ function Furnaces:initialise(context)
   self._context = context
   self._ignored = config.ignored
   self._furnace_types = config.types
+  self._generator_types = config.gen_types
   self._fuels = config.fuels
   self._fuel_lookup = tbl.lookup(self._fuels)
 
