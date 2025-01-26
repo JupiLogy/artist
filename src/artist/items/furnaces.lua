@@ -103,7 +103,7 @@ function Furnaces:initialise(context)
     :define("hot_rescan", "The delay between rescanning hot (smelting) furnaces", 5, schema.positive)
     :define("ignored", "A list of ignored furnace peripherals", {}, schema.list(schema.peripheral), tbl.lookup)
     :define("types", "A list of furnace types", { "minecraft:furnace", "techreborn:electric_furnace" }, schema.list(schema.string), tbl.lookup)
-    :define("gen_types", "A list of generator types", { "minecraft:furnace", "techreborn:generator" }, schema.list(schema.string), tbl.lookup)
+    :define("gen_types", "A list of generator types", { "minecraft:furnace", "techreborn:solid_fuel_generator" }, schema.list(schema.string), tbl.lookup)
     :define("fuels", "Possible fuel items", {
       "minecraft:charcoal",
       "minecraft:coal",
@@ -120,6 +120,7 @@ function Furnaces:initialise(context)
 
   -- Skip all furnaces being used as inventories.
   for name in pairs(self._furnace_types) do inventories:add_ignored_type(name) end
+  for name in pairs(self._generator_types) do inventories:add_ignored_type(name) end
 
   -- We keep two sets of furnaces (well, name=>obj). Hot furnaces are checked
   -- in parallel and relatively frequently, while cold furnaces are checked
@@ -191,7 +192,7 @@ end
 
 function Furnaces:enabled(name)
   expect(1, name, "string")
-  return tbl.rs_sides[name] == nil and self._ignored[name] == nil and self._furnace_types[peripheral.getType(name)] ~= nil
+  return tbl.rs_sides[name] == nil and self._ignored[name] == nil and (self._furnace_types[peripheral.getType(name)] ~= nil or self._generator_types[peripheral.getType(name)] ~= nil)
 end
 
 function Furnaces:smelt(hash, count, furnaces)
