@@ -58,7 +58,6 @@ local function check_furnace(self, name)
   if self._generator_types[peripheral.getType(name)] ~= nil then
     -- Only refuel when halfway there
     if not fuel or fuel.count <= 32 then
-      local refuel_with
       if fuel then
         local hash = Items.hash_item(fuel)
         if self._fuel_lookup[hash] then refuel_with = hash end
